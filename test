@@ -1,0 +1,65 @@
+from game2048.game import Game
+from game2048.displays import Display, IPythonDisplay
+from game2048.agents import Agent, RandomAgent, ExpectiMaxAgent
+import numpy as np
+
+display = IPythonDisplay()
+x_train=[]
+y_train=[]
+item=20000
+num=0
+n=[0,0,0,0]
+while len(x_train)<item-500:
+    game = Game(4, score_to_win=2048, random=False)
+    agent = ExpectiMaxAgent(game, display=display)
+    print(len(x_train),n)
+    while 1:
+        tmp=[]
+        tmp=(game.board)
+        tmp1=[]
+        tmp2=[]
+        tmp3=[]
+        tmp[tmp==0]=1
+        tmp=np.log2(tmp)
+        choice=agent.step()
+        if np.max(game.board)<=8:
+            game.move(choice)
+            continue
+        tmp=tmp.tolist()
+        tmp1[:] = list(map(list,zip(*tmp[::-1])))
+        tmp2[:] = list(map(list,zip(*tmp1[::-1])))
+        tmp3[:] = list(map(list,zip(*tmp2[::-1])))
+        c=sum(sum(game.board)*[0,1,2,3])/sum(sum(game.board))
+        r=sum(sum(np.transpose(game.board))*[0,1,2,3])/sum(sum(game.board))
+
+        if r<1.5 and c<1.5 and n[choice]<(item/4):
+            num=num+1
+            x_train.append(tmp)
+            y_train.append(agent.step())
+            n[choice]=n[choice]+1
+        if r>1.5 and c<1.5 and n[(choice+3)%4]<(item/4):
+            num=num+1
+            x_train.append(tmp1)
+            y_train.append((agent.step()+3)%4)
+            n[(choice+3)%4]=n[(choice+3)%4]+1
+        if r>1.5 and c>1.5 and n[(choice+2)%4]<(item/4):
+            num=num+1
+            x_train.append(tmp2)
+            y_train.append((agent.step()+2)%4)
+            n[(choice+2)%4]=n[(choice+2)%4]+1
+        if r<1.5 and c>1.5 and n[(choice+1)%4]<(item/4):
+            num=num+1
+            x_train.append(tmp3)
+            y_train.append((agent.step()+1)%4)
+            n[(choice+1)%4]=n[(choice+1)%4]+1
+
+        game.move(agent.step())
+        if np.max(game.board)==256:
+            break
+        if game.end!=0:
+            break
+x_train=np.array(x_train,dtype=float)
+x_train=x_train.astype('float32')
+x_train=to_categorical(x_train,11)
+y_train=np.array(y_train,dtype=float)
+y_train=to_categorical(y_train)
